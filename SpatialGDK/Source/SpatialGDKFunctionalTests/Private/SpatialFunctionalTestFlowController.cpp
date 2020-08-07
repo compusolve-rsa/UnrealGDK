@@ -9,7 +9,6 @@
 #include "LoadBalancing/LayeredLBStrategy.h"
 #include "Net/UnrealNetwork.h"
 #include "SpatialFunctionalTest.h"
-#include "SpatialFunctionalTestGridLBStrategy.h"
 #include "SpatialGDKFunctionalTestsPrivate.h"
 
 ASpatialFunctionalTestFlowController::ASpatialFunctionalTestFlowController(const FObjectInitializer& ObjectInitializer)
@@ -79,25 +78,7 @@ void ASpatialFunctionalTestFlowController::ChangeEntityInterest(int64 ActorEntit
 	}
 
 	ULayeredLBStrategy* LayeredLBStrategy = Cast<ULayeredLBStrategy>(SpatialNetDriver->LoadBalanceStrategy);
-	USpatialFunctionalTestGridLBStrategy* TestGridLB =
-		Cast<USpatialFunctionalTestGridLBStrategy>(LayeredLBStrategy->GetLBStrategyForVisualRendering());
-	if (TestGridLB != nullptr)
-	{
-		int NumEntities = TestGridLB->Entities.Num();
-		if (bAddInterest)
-		{
-			TestGridLB->Entities.AddUnique(ActorEntityId);
-		}
-		else
-		{
-			TestGridLB->Entities.Remove(ActorEntityId);
-		}
-		if (NumEntities != TestGridLB->Entities.Num())
-		{
-			SpatialNetDriver->Sender->UpdateServerWorkerEntityInterestAndPosition();
-		}
-	}
-	else
+
 	{
 		UE_LOG(LogSpatialGDKFunctionalTests, Error, TEXT("Trying to change interest without USpatialFunctionalTestGridLBStrategy"));
 	}

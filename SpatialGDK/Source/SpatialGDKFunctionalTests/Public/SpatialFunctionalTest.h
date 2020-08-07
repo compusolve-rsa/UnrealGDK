@@ -7,7 +7,6 @@
 #include "EngineUtils.h"
 #include "FunctionalTest.h"
 #include "SpatialFunctionalTestFlowControllerSpawner.h"
-#include "SpatialFunctionalTestLBDelegationInterface.h"
 #include "SpatialFunctionalTestStep.h"
 #include "SpatialFunctionalTest.generated.h"
 
@@ -204,7 +203,7 @@ protected:
 	int GetNumExpectedServers() const { return NumExpectedServers; }
 	void DeleteActorsRegisteredForAutoDestroy();
 
-	ISpatialFunctionalTestLBDelegationInterface* GetDelegationInterface() const;
+	//ISpatialFunctionalTestLBDelegationInterface* GetDelegationInterface() const;
 
 private:
 	UPROPERTY(EditAnywhere, meta = (ClampMin = "0"), Category = "Spatial Functional Test")

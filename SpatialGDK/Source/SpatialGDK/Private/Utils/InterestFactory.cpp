@@ -101,7 +101,7 @@ Worker_ComponentUpdate InterestFactory::CreateInterestUpdate(AActor* InActor, co
 	return CreateInterest(InActor, InInfo, InEntityId).CreateInterestUpdate();
 }
 
-Interest InterestFactory::CreateServerWorkerInterest(const UAbstractLBStrategy* LBStrategy)
+Interest InterestFactory::CreateServerWorkerInterest(const UAbstractLBStrategy* LBStrategy, bool bDebug)
 {
 	const USpatialGDKSettings* SpatialGDKSettings = GetDefault<USpatialGDKSettings>();
 
@@ -151,6 +151,15 @@ Interest InterestFactory::CreateServerWorkerInterest(const UAbstractLBStrategy* 
 	ServerQuery.ResultComponentIds = SchemaResultType{ SpatialConstants::WORKER_COMPONENT_ID };
 	ServerQuery.Constraint.ComponentConstraint = SpatialConstants::WORKER_COMPONENT_ID;
 	AddComponentQueryPairToInterestComponent(ServerInterest, SpatialConstants::POSITION_COMPONENT_ID, ServerQuery);
+
+	// Query to know about all the actors tagged with a debug component
+	if (bDebug)
+	{
+		ServerQuery = Query();
+		ServerQuery.ResultComponentIds = SchemaResultType{ SpatialConstants::GDK_DEBUG_COMPONENT_ID };
+		ServerQuery.Constraint.ComponentConstraint = SpatialConstants::GDK_DEBUG_COMPONENT_ID;
+		AddComponentQueryPairToInterestComponent(ServerInterest, SpatialConstants::POSITION_COMPONENT_ID, ServerQuery);
+	}
 
 	return ServerInterest;
 }
@@ -266,6 +275,20 @@ void InterestFactory::AddOwnerInterestOnServer(Interest& OutInterest, const AAct
 		OwnerChainQuery.ResultComponentIds = ServerNonAuthInterestResultType;
 		AddComponentQueryPairToInterestComponent(OutInterest, SpatialConstants::POSITION_COMPONENT_ID, OwnerChainQuery);
 	}
+}
+
+void InterestFactory::AddExtraEntityInterestOnServer(Interest& OutInterest, const TArray<Worker_EntityId_Key>& Entities) const
+{
+	Query EntitiesQuery;
+	EntitiesQuery.ResultComponentIds = ServerNonAuthInterestResultType;
+	for (Worker_EntityId Entity : Entities)
+	{
+		QueryConstraint EntityQuery;
+		EntityQuery.EntityIdConstraint = Entity;
+		EntitiesQuery.Constraint.OrConstraint.Add(EntityQuery);
+	}
+
+	AddComponentQueryPairToInterestComponent(OutInterest, SpatialConstants::POSITION_COMPONENT_ID, EntitiesQuery);
 }
 
 void InterestFactory::AddAlwaysRelevantAndInterestedQuery(Interest& OutInterest, const AActor* InActor, const FClassInfo& InInfo,

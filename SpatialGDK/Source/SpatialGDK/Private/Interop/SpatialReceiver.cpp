@@ -13,6 +13,7 @@
 #include "EngineClasses/SpatialFastArrayNetSerialize.h"
 #include "EngineClasses/SpatialLoadBalanceEnforcer.h"
 #include "EngineClasses/SpatialNetConnection.h"
+#include "EngineClasses/SpatialNetDriverDebugContext.h"
 #include "EngineClasses/SpatialPackageMapClient.h"
 #include "EngineClasses/SpatialVirtualWorkerTranslator.h"
 #include "Interop/Connection/SpatialWorkerConnection.h"
@@ -277,6 +278,12 @@ void USpatialReceiver::OnAddComponent(const Worker_AddComponentOp& Op)
 		{
 			Schema_Object* ComponentObject = Schema_GetComponentDataFields(Op.data.schema_type);
 			NetDriver->VirtualWorkerTranslator->ApplyVirtualWorkerManagerData(ComponentObject);
+		}
+		return;
+	case SpatialConstants::GDK_DEBUG_COMPONENT_ID:
+		if (NetDriver->DebugCtx)
+		{
+			NetDriver->DebugCtx->OnDebugComponentUpdateReceived(Op.entity_id);
 		}
 		return;
 	}
@@ -824,6 +831,13 @@ void USpatialReceiver::HandleActorAuthority(const Worker_AuthorityChangeOp& Op)
 		{
 			Sender->SendServerEndpointReadyUpdate(Op.entity_id);
 		}
+	}
+
+	if (NetDriver->DebugCtx
+		&& Op.authority == WORKER_AUTHORITY_NOT_AUTHORITATIVE
+		&& Op.component_id == SpatialConstants::GDK_DEBUG_COMPONENT_ID)
+	{
+		NetDriver->DebugCtx->OnDebugComponentAuthLost(Op.entity_id);
 	}
 }
 
@@ -1635,6 +1649,12 @@ void USpatialReceiver::OnComponentUpdate(const Worker_ComponentUpdateOp& Op)
 	case SpatialConstants::SERVER_ENDPOINT_COMPONENT_ID:
 	case SpatialConstants::MULTICAST_RPCS_COMPONENT_ID:
 		HandleRPC(Op);
+		return;
+	case SpatialConstants::GDK_DEBUG_COMPONENT_ID:
+		if (NetDriver->DebugCtx)
+		{
+			NetDriver->DebugCtx->OnDebugComponentUpdateReceived(Op.entity_id);
+		}
 		return;
 	}
 
