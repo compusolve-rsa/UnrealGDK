@@ -58,32 +58,6 @@ void ASpatialFunctionalTestFlowController::CrossServerSetWorkerId_Implementation
 	WorkerDefinition.Id = NewWorkerId;
 }
 
-void ASpatialFunctionalTestFlowController::AddEntityInterest_Implementation(const int64 ActorEntityId)
-{
-	ChangeEntityInterest(ActorEntityId, true);
-}
-
-void ASpatialFunctionalTestFlowController::RemoveEntityInterest_Implementation(const int64 ActorEntityId)
-{
-	ChangeEntityInterest(ActorEntityId, false);
-}
-
-void ASpatialFunctionalTestFlowController::ChangeEntityInterest(int64 ActorEntityId, bool bAddInterest)
-{
-	USpatialNetDriver* SpatialNetDriver = Cast<USpatialNetDriver>(GetNetDriver());
-	if (SpatialNetDriver == nullptr || ActorEntityId == SpatialConstants::INVALID_ENTITY_ID)
-	{
-		ensureMsgf(ActorEntityId != SpatialConstants::INVALID_ENTITY_ID, TEXT("Trying to change interest over an invalid entity id"));
-		return;
-	}
-
-	ULayeredLBStrategy* LayeredLBStrategy = Cast<ULayeredLBStrategy>(SpatialNetDriver->LoadBalanceStrategy);
-
-	{
-		UE_LOG(LogSpatialGDKFunctionalTests, Error, TEXT("Trying to change interest without USpatialFunctionalTestGridLBStrategy"));
-	}
-}
-
 void ASpatialFunctionalTestFlowController::OnReadyToRegisterWithTest()
 {
 	if (!bReadyToRegisterWithTest || OwningTest == nullptr)
