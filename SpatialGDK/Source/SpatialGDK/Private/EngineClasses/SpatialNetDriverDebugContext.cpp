@@ -173,9 +173,9 @@ TOptional<VirtualWorkerId> USpatialNetDriverDebugContext::GetActorHierarchyExpli
 	for (const AActor* Child : Actor->Children)
 	{
 		TOptional<VirtualWorkerId> ChildDelegation = GetActorHierarchyExplicitDelegation_Traverse(Child);
-		ensureMsgf(!CandidateDelegation.IsSet() || !ChildDelegation.IsSet() || *CandidateDelegation == *ChildDelegation,
+		ensureMsgf(!CandidateDelegation.IsSet() || !ChildDelegation.IsSet() || CandidateDelegation.GetValue() == ChildDelegation.GetValue(),
 			TEXT("Inconsistent delegation. Actor %s is delegated to %i but a child is delegated to %i"),
-			*Actor->GetName(), *CandidateDelegation, *ChildDelegation);
+			*Actor->GetName(), CandidateDelegation.GetValue(), ChildDelegation.GetValue());
 		CandidateDelegation = ChildDelegation;
 	}
 
