@@ -51,6 +51,9 @@
 #include "Utils/SpatialMetricsDisplay.h"
 #include "Utils/SpatialStatics.h"
 
+#include "AssetRegistryModule.h"
+#include "AssetData.h"
+
 #if WITH_EDITOR
 #include "Settings/LevelEditorPlaySettings.h"
 #include "SpatialGDKServicesModule.h"
@@ -429,6 +432,37 @@ void USpatialNetDriver::CreateAndInitializeCoreClasses()
 	InterestFactory = MakeUnique<SpatialGDK::InterestFactory>(ClassInfoManager, PackageMap);
 }
 
+namespace
+{
+	UClass* GetMultiWorkerSettingsClass(const FName& MultiWorkerSettingsClass)
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		TArray<FAssetData> ClassList;
+		AssetRegistryModule.Get().GetAllAssets(ClassList, true);
+
+		for (const auto& Data : ClassList)
+		{
+			UClass* Class = Data.GetClass();
+			if (Class && Class->GetFName().IsEqual(MultiWorkerSettingsClass))
+			{
+				return Class;
+			}
+		}
+
+		for (TObjectIterator<UClass> ClassIterator; ClassIterator; ++ClassIterator)
+		{
+			if (ClassIterator->IsChildOf(UAbstractSpatialMultiWorkerSettings::StaticClass())
+				&& ClassIterator->GetFName().IsEqual(MultiWorkerSettingsClass)
+				&& !ClassIterator->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists))
+			{
+				return *ClassIterator;
+			}
+		}
+
+		return nullptr;
+	}
+}
+
 void USpatialNetDriver::CreateAndInitializeLoadBalancingClasses()
 {
 	if (!IsServer())
@@ -445,8 +479,20 @@ void USpatialNetDriver::CreateAndInitializeLoadBalancingClasses()
 	const bool bMultiWorkerEnabled = USpatialStatics::IsSpatialMultiWorkerEnabled(CurrentWorld);
 
 	// If multi worker is disabled, the USpatialMultiWorkerSettings CDO will give us single worker behaviour.
-	const TSubclassOf<UAbstractSpatialMultiWorkerSettings> MultiWorkerSettingsClass =
-		bMultiWorkerEnabled ? *WorldSettings->MultiWorkerSettingsClass : USpatialMultiWorkerSettings::StaticClass();
+	TSubclassOf<UAbstractSpatialMultiWorkerSettings> MultiWorkerSettingsClass = USpatialMultiWorkerSettings::StaticClass();
+
+	FString SpatialMultiWorkerSettingsClassName;
+	const TCHAR* CommandLine = FCommandLine::Get();
+	if (FParse::Value(CommandLine, TEXT("multiWorkerSettingsClass"), SpatialMultiWorkerSettingsClassName))
+	{
+		UE_LOG(LogSpatialOSNetDriver, Log, TEXT("set MultiWorkerSettingsClass as '%s' from command line"), *SpatialMultiWorkerSettingsClassName);
+		MultiWorkerSettingsClass = GetMultiWorkerSettingsClass(FName(*SpatialMultiWorkerSettingsClassName));
+	}
+	else if (bMultiWorkerEnabled)
+	{
+		MultiWorkerSettingsClass = *WorldSettings->MultiWorkerSettingsClass;
+		UE_LOG(LogSpatialOSNetDriver, Log, TEXT("set MultiWorkerSettingsClass as '%s' from SpatialWorldSettings"), *WorldSettings->MultiWorkerSettingsClass->GetName());
+	}
 
 	const UAbstractSpatialMultiWorkerSettings* MultiWorkerSettings =
 		NewObject<UAbstractSpatialMultiWorkerSettings>(this, *MultiWorkerSettingsClass);
